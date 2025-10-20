@@ -69,100 +69,6 @@ export default {
       }
     }
 
-    // Verify key
-    if (path === '/verify' && request.method === 'POST') {
-      try {
-        const body = await request.json();
-        const { key } = body;
-
-        if (!key) {
-          return new Response(JSON.stringify({
-            success: false,
-            error: 'Key required'
-          }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-
-        const keyDataStr = await env.KEYS.get(key);
-        
-        if (!keyDataStr) {
-          return new Response(JSON.stringify({
-            success: false,
-            error: 'Invalid key'
-          }), {
-            status: 404,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-
-        const keyData = JSON.parse(keyDataStr);
-
-        // Check if expired
-        if (Date.now() > keyData.expiresAt) {
-          await env.KEYS.delete(key);
-          
-          if (env.DISCORD_WEBHOOK) {
-            await sendDiscordWebhook(env.DISCORD_WEBHOOK, {
-              embeds: [{
-                title: "⏰ Key Expired",
-                color: 0xff0000,
-                fields: [
-                  { name: "Key", value: `\`${key}\``, inline: false }
-                ],
-                timestamp: new Date().toISOString()
-              }]
-            });
-          }
-
-          return new Response(JSON.stringify({
-            success: false,
-            error: 'Key expired'
-          }), {
-            status: 403,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-
-        // Mark as used if first verification
-        if (!keyData.used) {
-          keyData.used = true;
-          await env.KEYS.put(key, JSON.stringify(keyData));
-
-          if (env.DISCORD_WEBHOOK) {
-            await sendDiscordWebhook(env.DISCORD_WEBHOOK, {
-              embeds: [{
-                title: "✅ Key Activated",
-                color: 0x0099ff,
-                fields: [
-                  { name: "Key", value: `\`${key}\``, inline: false }
-                ],
-                timestamp: new Date().toISOString()
-              }]
-            });
-          }
-        }
-
-        return new Response(JSON.stringify({
-          success: true,
-          expiresAt: keyData.expiresAt,
-          timeLeft: keyData.expiresAt - Date.now()
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      } catch (error) {
-        return new Response(JSON.stringify({
-          success: false,
-          error: error.message
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-    }
-
     // Delete/revoke key
     if (path === '/revoke' && request.method === 'POST') {
       try {
@@ -201,7 +107,7 @@ export default {
       }
     }
 
-    return new Response('N3xus Key System API\n\nEndpoints:\n- POST /generate - Generate key\n- POST /verify - Verify key\n- POST /revoke - Revoke key', {
+    return new Response('N3xus Key System API\n\nEndpoints:\n- POST /generate - Generate key\n- POST /revoke - Revoke key', {
       headers: { ...corsHeaders, 'Content-Type': 'text/plain' }
     });
   }
