@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Random KEY-UUID</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:40px}
+    #key{font-weight:700; font-size:1.4rem; margin-top:12px}
+    button{padding:8px 12px; font-size:1rem}
+  </style>
+</head>
+<body>
+  <h1>Get a random KEY-UUID</h1>
+  <button id="gen">Generate Key</button>
+  <div id="key"></div>
+  <script>
+    const base = location.origin;
+    document.getElementById('gen').addEventListener('click', async () => {
+      try {
+        const res = await fetch(base + '/generate');
+        const j = await res.json();
+        document.getElementById('key').textContent = j.key || 'Error';
+      } catch(e) {
+        document.getElementById('key').textContent = 'Request failed';
+      }
+    });
+  </script>
+</body>
+</html>
