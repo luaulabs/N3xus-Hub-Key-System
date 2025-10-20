@@ -18,14 +18,13 @@ export default {
     if (path === '/generate' && request.method === 'POST') {
       try {
         const body = await request.json();
-        const { duration = 86400, hwid = null } = body; // default 24 hours
+        const { duration = 86400 } = body; // default 24 hours
 
         const key = generateKey();
         const expiresAt = Date.now() + (duration * 1000);
 
         const keyData = {
           key: key,
-          hwid: hwid,
           createdAt: Date.now(),
           expiresAt: expiresAt,
           used: false
@@ -44,7 +43,6 @@ export default {
               fields: [
                 { name: "Key", value: `\`${key}\``, inline: false },
                 { name: "Duration", value: `${duration / 3600} hours`, inline: true },
-                { name: "HWID", value: hwid || "None", inline: true },
                 { name: "Expires", value: `<t:${Math.floor(expiresAt / 1000)}:R>`, inline: false }
               ],
               timestamp: new Date().toISOString()
@@ -75,7 +73,7 @@ export default {
     if (path === '/verify' && request.method === 'POST') {
       try {
         const body = await request.json();
-        const { key, hwid = null } = body;
+        const { key } = body;
 
         if (!key) {
           return new Response(JSON.stringify({
@@ -127,20 +125,8 @@ export default {
           });
         }
 
-        // Check HWID if required
-        if (keyData.hwid && hwid && keyData.hwid !== hwid) {
-          return new Response(JSON.stringify({
-            success: false,
-            error: 'HWID mismatch'
-          }), {
-            status: 403,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-
-        // Bind HWID if first use
-        if (!keyData.hwid && hwid) {
-          keyData.hwid = hwid;
+        // Mark as used if first verification
+        if (!keyData.used) {
           keyData.used = true;
           await env.KEYS.put(key, JSON.stringify(keyData));
 
@@ -150,8 +136,7 @@ export default {
                 title: "✅ Key Activated",
                 color: 0x0099ff,
                 fields: [
-                  { name: "Key", value: `\`${key}\``, inline: false },
-                  { name: "HWID", value: hwid, inline: false }
+                  { name: "Key", value: `\`${key}\``, inline: false }
                 ],
                 timestamp: new Date().toISOString()
               }]
